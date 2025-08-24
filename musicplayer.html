@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Modern Music Player</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: linear-gradient(135deg, #1f1c2c, #928dab);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+    }
+
+    .player {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 30px;
+      width: 340px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+      text-align: center;
+    }
+
+    .album-art {
+      width: 140px;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+    }
+
+    h2 {
+      font-size: 20px;
+      margin-bottom: 5px;
+    }
+
+    p {
+      font-size: 14px;
+      color: #ccc;
+      margin-bottom: 20px;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: 5px;
+      background: #ddd;
+      outline: none;
+      margin: 10px 0 20px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #00f5c0;
+      cursor: pointer;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .controls button {
+      background: #00f5c0;
+      border: none;
+      padding: 12px 14px;
+      border-radius: 50%;
+      color: #000;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 0 10px #00f5c0;
+      transition: transform 0.2s ease;
+    }
+
+    .controls button:hover {
+      transform: scale(1.1);
+    }
+
+    .bottom-options {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    .playlist {
+      text-align: left;
+      max-height: 100px;
+      overflow-y: auto;
+      font-size: 13px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .playlist-item {
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .playlist-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .playlist-item.active {
+      background: #00f5c0;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+  <div class="player">
+    <img src="cover1.jpeg" class="album-art" id="albumArt" alt="Album Art" />
+    <h2 id="songTitle">Song Title</h2>
+    <p id="songArtist">Artist Name</p>
+
+    <audio id="audio" src=""></audio>
+    <input type="range" id="progress" value="0" />
+
+    <div class="controls">
+      <button onclick="prevSong()">⏮</button>
+      <button onclick="togglePlayPause()" id="playPauseBtn">▶️</button>
+      <button onclick="nextSong()">⏭</button>
+    </div>
+
+    <div class="bottom-options">
+      <label>
+        <input type="checkbox" id="shuffleToggle" /> Shuffle
+      </label>
+      <label>
+        Vol <input type="range" id="volume" min="0" max="1" step="0.01" value="1" style="width: 70px;">
+      </label>
+    </div>
+
+    <div class="playlist" id="playlist"></div>
+  </div>
+
+  <script>
+    const audio = document.getElementById('audio');
+    const progress = document.getElementById('progress');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const albumArt = document.getElementById('albumArt');
+    const songTitle = document.getElementById('songTitle');
+    const songArtist = document.getElementById('songArtist');
+    const volume = document.getElementById('volume');
+    const shuffleToggle = document.getElementById('shuffleToggle');
+    const playlistEl = document.getElementById('playlist');
+
+    const songs = [
+      { title: 'Namo Namah Shivaya', artist: 'Devi Sri Prasad,Anurag Kulkarni,HariPriya', file: 'song1.mp3', cover: 'cover1.jpeg' },
+      { title: 'Hilesso Hilesso', artist: 'Devi Sri Prasad,Nakash Aziz,Shreya Ghosal', file: 'song2.mp3', cover: 'cover2.jpeg' },
+      { title: 'Godari Gattu Meedha', artist: 'Ramana Gogula,Madhu Priya', file: 'song3.mp3', cover: 'cover3.jpeg' }
+    ];
+
+    let songIndex = 0;
+
+    function loadSong(index) {
+      const song = songs[index];
+      audio.src = song.file;
+      albumArt.src = song.cover;
+      songTitle.textContent = song.title;
+      songArtist.textContent = song.artist;
+      updatePlaylistHighlight();
+    }
+
+    function togglePlayPause() {
+      if (audio.paused) {
+        audio.play();
+        playPauseBtn.textContent = '⏸';
+      } else {
+        audio.pause();
+        playPauseBtn.textContent = '▶️';
+      }
+    }
+
+    function nextSong() {
+      if (shuffleToggle.checked) {
+        songIndex = Math.floor(Math.random() * songs.length);
+      } else {
+        songIndex = (songIndex + 1) % songs.length;
+      }
+      loadSong(songIndex);
+      audio.play();
+      playPauseBtn.textContent = '⏸';
+    }
+
+    function prevSong() {
+      if (shuffleToggle.checked) {
+        songIndex = Math.floor(Math.random() * songs.length);
+      } else {
+        songIndex = (songIndex - 1 + songs.length) % songs.length;
+      }
+      loadSong(songIndex);
+      audio.play();
+      playPauseBtn.textContent = '⏸';
+    }
+
+    audio.addEventListener('timeupdate', () => {
+      if (audio.duration) {
+        progress.value = (audio.currentTime / audio.duration) * 100;
+      }
+    });
+
+    progress.addEventListener('input', () => {
+      audio.currentTime = (progress.value / 100) * audio.duration;
+    });
+
+    audio.addEventListener('ended', nextSong);
+    volume.addEventListener('input', () => {
+      audio.volume = volume.value;
+    });
+
+    function updatePlaylistHighlight() {
+      const items = document.querySelectorAll('.playlist-item');
+      items.forEach((item, idx) => {
+        item.classList.toggle('active', idx === songIndex);
+      });
+    }
+
+    function renderPlaylist() {
+      playlistEl.innerHTML = '';
+      songs.forEach((song, index) => {
+        const div = document.createElement('div');
+        div.textContent = `${song.title} - ${song.artist}`;
+        div.classList.add('playlist-item');
+        if (index === songIndex) div.classList.add('active');
+        div.onclick = () => {
+          songIndex = index;
+          loadSong(songIndex);
+          audio.play();
+          playPauseBtn.textContent = '⏸';
+        };
+        playlistEl.appendChild(div);
+      });
+    }
+
+    // Init
+    loadSong(songIndex);
+    renderPlaylist();
+  </script>
+</body>
+</html>
+
